@@ -22,7 +22,9 @@ npm install
 npm run dev # Runs on port 5000
 ```
 ### 2. Frontend Setup
+```bash
 
 cd alqwasmeh-store
 npm install
 npm run dev # Runs on port 5173
+```
