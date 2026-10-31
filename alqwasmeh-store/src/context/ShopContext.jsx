@@ -47,7 +47,7 @@ export const ShopProvider = ({ children }) => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/products');
+      const response = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/products');
       const result = await response.json();
 
       // التحقق مما إذا كانت النتيجة كائن يحتوي data أو مصفوفة مباشرة
@@ -138,7 +138,7 @@ export const ShopProvider = ({ children }) => {
   const addProduct = async (productData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
-      const response = await fetch('http://localhost:5000/api/products', {
+      const response = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,7 +162,7 @@ export const ShopProvider = ({ children }) => {
   const updateProduct = async (id, updatedData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
-      const response = await fetch(`http://localhost:5000/api/products/${id}`, {
+      const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com/api/products/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -189,7 +189,7 @@ export const ShopProvider = ({ children }) => {
     if (!window.confirm('هل أنت متأكد من حذف هذا الثوب نهائياً؟')) return;
     try {
       const token = localStorage.getItem('alqwasmeh_token');
-      const response = await fetch(`http://localhost:5000/api/products/${id}`, {
+      const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com/api/products/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`

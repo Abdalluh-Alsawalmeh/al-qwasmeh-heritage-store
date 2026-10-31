@@ -43,7 +43,7 @@ router.post('/', upload.single('image'), (req, res) => {
     return res.status(400).json({ success: false, message: 'لم يتم اختيار أي ملف' });
   }
   // إرجاع الرابط النظيف للصورة
-  const filePath = `http://localhost:5000/uploads/${req.file.filename}`;
+  const filePath = `https://al-qwasmeh-heritage-store.onrender.com/uploads/${req.file.filename}`;
   res.status(200).json({
     success: true,
     imageUrl: filePath

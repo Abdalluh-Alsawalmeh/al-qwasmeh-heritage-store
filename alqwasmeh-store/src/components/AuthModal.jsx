@@ -30,7 +30,7 @@ export const AuthModal = () => {
         const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
 
         try {
-            const response = await fetch(`http://localhost:5000${endpoint}`, {
+            const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -59,7 +59,7 @@ export const AuthModal = () => {
 
         try {
             // إرسال التوكن للباك إند للتسجيل والتحقق في MongoDB
-            const response = await fetch('http://localhost:5000/api/auth/google', {
+            const response = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/auth/google', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ credential: credentialResponse.credential }),

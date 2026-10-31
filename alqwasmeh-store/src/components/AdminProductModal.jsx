@@ -79,7 +79,7 @@ export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
         setError('');
 
         try {
-            const res = await fetch('http://localhost:5000/api/upload', {
+            const res = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/upload', {
                 method: 'POST',
                 body: uploadData
             });
@@ -115,7 +115,7 @@ export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
                 const uploadData = new FormData();
                 uploadData.append('image', file);
 
-                const res = await fetch('http://localhost:5000/api/upload', {
+                const res = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/upload', {
                     method: 'POST',
                     body: uploadData
                 });
