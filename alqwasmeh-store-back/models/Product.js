@@ -65,4 +65,8 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// فهارس للفلترة بالتصنيف والترتيب بالأحدث (إنشاء الفهارس آمن ولا يمس البيانات)
+productSchema.index({ category: 1, createdAt: -1 });
+productSchema.index({ createdAt: -1 });
+
 export const Product = mongoose.model('Product', productSchema);

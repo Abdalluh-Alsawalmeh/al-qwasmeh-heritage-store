@@ -1,39 +1,63 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import path from 'path';
+import 'dotenv/config';
 import fs from 'fs';
+import express from 'express';
+import cors from 'cors';
 import { connectDB } from './config/db.js';
+import { UPLOAD_DIR } from './config/paths.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
-import { errorHandler } from './middlewares/errorMiddleware.js';
+import { errorHandler, notFound } from './middlewares/errorMiddleware.js';
 
-dotenv.config();
-
-// الاتصال بقاعدة البيانات
-connectDB();
-
-const app = express();
-
-// إعداد CORS لتقبل الطلبات من Vercel والـ localhost
-app.use(cors({
-  origin: '*',
-  credentials: true
-}));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// إنشاء مجلد uploads تلقائياً إن لم يكن موجوداً
-const uploadDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// متغيرات البيئة الإلزامية — لا توجد قيم احتياطية للأسرار
+const missing = ['MONGO_URI', 'JWT_SECRET'].filter((key) => !process.env[key]);
+if (missing.length > 0) {
+  console.error(`Missing required environment variables: ${missing.join(', ')}`);
+  process.exit(1);
 }
 
-// جعل مجلد الصور متاحاً كملفات ثابتة Static
-app.use('/uploads', express.static(uploadDir));
+const isProduction = process.env.NODE_ENV === 'production';
+const app = express();
+
+app.disable('x-powered-by');
+app.set('trust proxy', 1); 
+// CORS: قائمة النطاقات المسموحة من CORS_ORIGINS (مفصولة بفواصل)
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+if (allowedOrigins.length === 0 && isProduction) {
+  console.warn('CORS_ORIGINS is not set: any website can call this API. Set it to your Vercel domain(s).');
+}
+
+app.use(cors({
+  origin: allowedOrigins.length === 0
+    ? true
+    : (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+        const error = new Error('Origin not allowed by CORS');
+        error.statusCode = 403;
+        callback(error);
+      },
+}));
+
+app.use((req, res, next) => {
+  res.set('X-Content-Type-Options', 'nosniff');
+  res.set('Referrer-Policy', 'no-referrer');
+  next();
+});
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// إنشاء مجلد uploads تلقائياً وإتاحته كملفات ثابتة (أسماء الملفات عشوائية فريدة فيمكن تخزينها مؤقتاً)
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+app.use('/uploads', (req, res, next) => {
+  res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(UPLOAD_DIR, { index: false, maxAge: '30d', immutable: true }));
 
 // مسارات الـ API
 app.use('/api/auth', authRoutes);
@@ -45,9 +69,12 @@ app.get('/', (req, res) => {
   res.send('Al Qwasmeh Store API is running successfully...');
 });
 
+app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
+await connectDB();
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });

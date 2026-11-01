@@ -1,53 +1,58 @@
-import jwt from 'jsonwebtoken';
-import { User } from '../models/User.js';
 import { OAuth2Client } from 'google-auth-library';
+import { User } from '../models/User.js';
+import { generateToken, serializeUser } from '../utils/auth.js';
 
-// دالة إنشاء JWT Token موحدة لجميع أنواع الدخول
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'your_jwt_secret', {
-    expiresIn: process.env.JWT_EXPIRE || '30d',
-  });
+const asString = (value) => (typeof value === 'string' ? value.trim() : '');
+
+const splitName = (firstName, lastName, name, fallbackFirst, fallbackLast) => {
+  const parts = name ? name.split(/\s+/) : [];
+  return {
+    first: firstName || parts[0] || fallbackFirst,
+    last: lastName || parts.slice(1).join(' ') || fallbackLast,
+  };
 };
+
+const sendAuth = (res, status, user) =>
+  res.status(status).json({ success: true, token: generateToken(user._id), user: serializeUser(user) });
 
 // @desc    إنشاء حساب جديد
 // @route   POST /api/auth/register
 // @access  Public
 export const register = async (req, res, next) => {
   try {
-    const { firstName, lastName, name, email, phone, password } = req.body;
+    const email = asString(req.body.email).toLowerCase();
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
 
-    const userExists = await User.findOne({ email: email.toLowerCase() });
-    if (userExists) {
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'يرجى تقديم البريد الإلكتروني وكلمة المرور' });
+    }
+    if (password.length < 6 || password.length > 100) {
+      return res.status(400).json({ success: false, message: 'يجب أن تتراوح كلمة المرور بين 6 و100 خانة' });
+    }
+
+    if (await User.exists({ email })) {
       return res.status(400).json({ success: false, message: 'البريد الإلكتروني مسجل مسبقاً' });
     }
 
     // استخراج الاسمين حتى لو أرسل الفرونت اسماً واحداً
-    const fName = firstName || (name ? name.split(' ')[0] : 'مستخدم');
-    const lName = lastName || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : 'جديد');
+    const { first, last } = splitName(
+      asString(req.body.firstName),
+      asString(req.body.lastName),
+      asString(req.body.name),
+      'مستخدم',
+      'جديد'
+    );
 
     const user = await User.create({
-      firstName: fName,
-      lastName: lName,
-      email: email.toLowerCase(),
-      phone: phone || '',
+      firstName: first,
+      lastName: last,
+      email,
+      phone: asString(req.body.phone),
       password,
-      role: 'customer'
+      role: 'customer', // لا يمكن إنشاء أدمن من هذا المسار
     });
 
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        _id: user._id,
-        id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        phone: user.phone,
-        role: user.role
-      }
-    });
+    sendAuth(res, 201, user);
   } catch (error) {
     next(error);
   }
@@ -58,35 +63,22 @@ export const register = async (req, res, next) => {
 // @access  Public
 export const login = async (req, res, next) => {
   try {
-    const { identifier, email, password } = req.body;
-    const loginIdentifier = (identifier || email || '').trim();
+    const identifier = asString(req.body.identifier) || asString(req.body.email);
+    const password = typeof req.body.password === 'string' ? req.body.password : '';
 
-    if (!loginIdentifier || !password) {
+    if (!identifier || !password) {
       return res.status(400).json({ success: false, message: 'يرجى تقديم البريد/الهاتف وكلمة المرور' });
     }
 
     const user = await User.findOne({
-      $or: [{ email: loginIdentifier.toLowerCase() }, { phone: loginIdentifier }],
+      $or: [{ email: identifier.toLowerCase() }, { phone: identifier }],
     }).select('+password');
 
     if (!user || !(await user.matchPassword(password))) {
       return res.status(401).json({ success: false, message: 'بيانات الدخول غير صحيحة' });
     }
 
-    const token = generateToken(user._id);
-
-    res.status(200).json({
-      success: true,
-      token,
-      user: {
-        _id: user._id,
-        id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-      },
-    });
+    sendAuth(res, 200, user);
   } catch (error) {
     next(error);
   }
@@ -95,23 +87,8 @@ export const login = async (req, res, next) => {
 // @desc    جلب بيانات المستخدم المسجل حالياً
 // @route   GET /api/auth/me
 // @access  Private
-export const getMe = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user.id);
-    res.status(200).json({
-      success: true,
-      user: {
-        _id: user._id,
-        id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
+export const getMe = (req, res) => {
+  res.status(200).json({ success: true, user: serializeUser(req.user) });
 };
 
 // @desc    تسجيل الدخول أو التسجيل التلقائي عبر Google
@@ -119,60 +96,51 @@ export const getMe = async (req, res, next) => {
 // @access  Public
 export const googleLogin = async (req, res, next) => {
   try {
-    const { credential } = req.body;
     const clientId = process.env.GOOGLE_CLIENT_ID;
+    const credential = asString(req.body.credential);
 
+    if (!clientId) {
+      return res.status(503).json({ success: false, message: 'تسجيل الدخول عبر Google غير مُفعّل على الخادم' });
+    }
     if (!credential) {
       return res.status(400).json({ success: false, message: 'بيانات الاعتماد غير موجودة' });
     }
 
-    const client = new OAuth2Client(clientId);
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: clientId,
-    });
+    let payload;
+    try {
+      const ticket = await new OAuth2Client(clientId).verifyIdToken({ idToken: credential, audience: clientId });
+      payload = ticket.getPayload();
+    } catch {
+      return res.status(401).json({ success: false, message: 'فشل التحقق من حساب Google' });
+    }
 
-    const payload = ticket.getPayload();
-    const { email, name, given_name, family_name, picture, sub: googleId } = payload;
+    if (!payload?.email || !payload.email_verified) {
+      return res.status(401).json({ success: false, message: 'البريد الإلكتروني في حساب Google غير موثّق' });
+    }
 
-    // استخراج الاسم الأول والأخير بدقة من بيانات Google
-    const firstName = (given_name || (name ? name.split(' ')[0] : 'مستخدم')).trim();
-    const lastName = (
-      family_name || (name && name.split(' ').length > 1 ? name.split(' ').slice(1).join(' ') : 'الزائر')
-    ).trim();
-
+    const email = payload.email.toLowerCase();
     let user = await User.findOne({ email });
 
     if (!user) {
+      const { first, last } = splitName(
+        asString(payload.given_name),
+        asString(payload.family_name),
+        asString(payload.name),
+        'مستخدم',
+        'الزائر'
+      );
       user = await User.create({
-        firstName,
-        lastName,
+        firstName: first,
+        lastName: last,
         email,
         role: 'customer',
-        avatar: picture || '',
-        googleId,
+        avatar: payload.picture || '',
+        googleId: payload.sub,
       });
     }
 
-    const token = generateToken(user._id);
-
-    return res.status(200).json({
-      success: true,
-      token,
-      user: {
-        _id: user._id,
-        id: user._id,
-        name: `${user.firstName} ${user.lastName}`,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar || picture || '',
-      },
-    });
+    sendAuth(res, 200, user);
   } catch (error) {
-    console.error('Google Auth Controller Error:', error.message);
-    return res.status(401).json({
-      success: false,
-      message: error.message || 'فشل التحقق من Google',
-    });
+    next(error);
   }
 };

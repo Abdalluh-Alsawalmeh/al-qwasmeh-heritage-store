@@ -19,7 +19,7 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'صيغة البريد الإلكتروني غير صحيحة']
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/, 'صيغة البريد الإلكتروني غير صحيحة']
     },
     phone: {
       type: String,
@@ -54,13 +54,13 @@ const userSchema = new mongoose.Schema(
 // تشفير كلمة المرور قبل الحفظ
 userSchema.pre('save', async function () {
   if (!this.isModified('password') || !this.password) return;
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 10);
 });
 
-// دالة التحقق من صحة كلمة المرور عند تسجيل الدخول
+// التحقق من كلمة المرور (حسابات Google بلا كلمة مرور ترجع false بدل رمي خطأ)
 userSchema.methods.matchPassword = async function (enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
+  if (!this.password) return false;
+  return bcrypt.compare(enteredPassword, this.password);
 };
 
 export const User = mongoose.model('User', userSchema);
