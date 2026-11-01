@@ -2,11 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ShopContext = createContext();
 
-// رابط الباك إند على Render (تأكد من مطابقته لاسم خدمتك الحالية على Render)
 const API_BASE_URL = 'https://al-qwasmeh-heritage-store.onrender.com';
 
 export const ShopProvider = ({ children }) => {
-  // سلة الشراء مع التخزين المحلي
   const [cart, setCart] = useState(() => {
     try {
       const saved = localStorage.getItem('alqwasmeh_cart');
@@ -16,7 +14,6 @@ export const ShopProvider = ({ children }) => {
     }
   });
 
-  // قائمة المفضلة مع التخزين المحلي
   const [wishlist, setWishlist] = useState(() => {
     try {
       const saved = localStorage.getItem('alqwasmeh_wishlist');
@@ -26,7 +23,6 @@ export const ShopProvider = ({ children }) => {
     }
   });
 
-  // بيانات المستخدم المسجل محلياً
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('alqwasmeh_user');
@@ -36,17 +32,14 @@ export const ShopProvider = ({ children }) => {
     }
   });
 
-  // حالة المنتجات القادمة من قاعدة البيانات
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // النوافذ المنبثقة
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isWishlistOpen, setIsWishlistOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // دالة تحويل مسارات الصور من localhost إلى Render السحابي
   const fixImageUrl = (url) => {
     if (!url) return '/background.png';
     if (url.startsWith('http://localhost:5000')) {
@@ -58,14 +51,12 @@ export const ShopProvider = ({ children }) => {
     return url;
   };
 
-  // جلب الأثواب من الـ Backend
   const fetchProducts = async () => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE_URL}/api/products`);
       const result = await response.json();
 
-      // استخراج البيانات سواء عادت كمصفوفة أو داخل كائن data
       const rawProducts = Array.isArray(result) ? result : (result.data || []);
 
       const formattedProducts = rawProducts.map((item) => ({
@@ -87,7 +78,6 @@ export const ShopProvider = ({ children }) => {
     fetchProducts();
   }, []);
 
-  // مزامنة البيانات مع التخزين المحلي
   useEffect(() => {
     localStorage.setItem('alqwasmeh_cart', JSON.stringify(cart));
   }, [cart]);
@@ -105,7 +95,6 @@ export const ShopProvider = ({ children }) => {
     }
   }, [user]);
 
-  // إدارة عناصر سلة الشراء
   const addToCart = (product, size, color, quantity = 1) => {
     const productId = product._id || product.id;
     setCart((prev) => {
@@ -140,7 +129,6 @@ export const ShopProvider = ({ children }) => {
     }));
   };
 
-  // إدارة عناصر المفضلة
   const toggleWishlist = (product) => {
     const productId = product._id || product.id;
     setWishlist((prev) => {
@@ -152,7 +140,6 @@ export const ShopProvider = ({ children }) => {
 
   const isInWishlist = (id) => wishlist.some((item) => (item._id || item.id) === id);
 
-  // دالة إضافة ثوب جديد (Admin)
   const addProduct = async (productData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
@@ -182,7 +169,6 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  // دالة تعديل ثوب حالي (Admin)
   const updateProduct = async (id, updatedData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
@@ -214,9 +200,7 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  // دالة حذف ثوب (Admin)
   const deleteProduct = async (id) => {
-    if (!window.confirm('هل أنت متأكد من حذف هذا الثوب نهائياً؟')) return;
     try {
       const token = localStorage.getItem('alqwasmeh_token');
       const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
@@ -230,13 +214,14 @@ export const ShopProvider = ({ children }) => {
         setProducts((prev) => prev.filter((item) => (item._id || item.id) !== id));
         return { success: true };
       }
-      alert(result.message || 'فشل الحذف');
+      console.error('فشل الحذف:', result.message);
+      return { success: false, message: result.message };
     } catch (error) {
-      alert('حدث خطأ أثناء محاولة الحذف');
+      console.error('حدث خطأ أثناء محاولة الحذف:', error);
+      return { success: false, message: error.message };
     }
   };
 
-  // تسجيل الخروج
   const logout = () => {
     setUser(null);
   };

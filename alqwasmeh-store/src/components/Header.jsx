@@ -14,34 +14,34 @@ export const Header = () => {
 
     const navItems = [
         {
-            title: "الرئيسية",
-            path: "/",
+            title: 'الرئيسية',
+            path: '/',
             dropdown: [
-                { label: "أحدث التشكيلات", path: "/products" },
-                { label: "الأكثر طلباً", path: "/products?category=occasions" }
+                { label: 'أحدث التشكيلات', path: '/products' },
+                { label: 'الأكثر طلباً', path: '/products?category=occasions' }
             ]
         },
         {
-            title: "جميع الأثواب",
-            path: "/products",
+            title: 'جميع الأثواب',
+            path: '/products',
             dropdown: [
-                { label: "أثواب تراثية فلسطينية", path: "/products?category=traditional" },
-                { label: "أثواب المناسبات والأعراس", path: "/products?category=occasions" },
-                { label: "بشوت وقفاطين عصرية", path: "/products?category=abayas" }
+                { label: 'أثواب تراثية فلسطينية', path: '/products?category=traditional' },
+                { label: 'أثواب المناسبات والأعراس', path: '/products?category=occasions' },
+                { label: 'بشوت وقفاطين عصرية', path: '/products?category=abayas' }
             ]
         },
         {
-            title: "قصتنا",
-            path: "/about",
+            title: 'قصتنا',
+            path: '/about',
             dropdown: [
-                { label: "عن دار القواسمة", path: "/about" }
+                { label: 'عن دار القواسمة', path: '/about' }
             ]
         },
         {
-            title: "تواصل معنا",
-            path: "/contact",
+            title: 'تواصل معنا',
+            path: '/contact',
             dropdown: [
-                { label: "خدمة العملاء وموقعنا", path: "/contact" }
+                { label: 'خدمة العملاء وموقعنا', path: '/contact' }
             ]
         }
     ];
@@ -61,18 +61,15 @@ export const Header = () => {
     return (
         <>
             <header className="sticky top-0 z-40 bg-[#F8F4EC]/95 backdrop-blur-md border-b border-[#EEE5D8]">
-                {/* شريط الإعلان العلوي */}
                 <div className="bg-[#6D1F32] text-white text-[10px] sm:text-xs py-1.5 px-3 text-center font-light leading-tight">
                     أصالة التراث، وأناقة التفاصيل — تفصيل يدوي وشحن لجميع المحافظات
                 </div>
 
                 <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between min-h-[72px] sm:min-h-[88px] py-1">
-                        
-                        {/* زر القائمة للموبايل */}
                         <div className="flex items-center lg:hidden">
-                            <button 
-                                onClick={() => setMobileMenuOpen(true)} 
+                            <button
+                                onClick={() => setMobileMenuOpen(true)}
                                 className="p-1.5 text-[#25221F] hover:text-[#9E2639] transition-colors"
                                 aria-label="فتح القائمة"
                             >
@@ -80,7 +77,6 @@ export const Header = () => {
                             </button>
                         </div>
 
-                        {/* الروابط لسطح المكتب */}
                         <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
                             {navItems.map((item, idx) => (
                                 <div key={idx} className="relative group py-5">
@@ -107,17 +103,15 @@ export const Header = () => {
                             ))}
                         </nav>
 
-                        {/* شعار الموقع */}
                         <Link to="/" className="cursor-pointer px-1 sm:px-4 scale-90 sm:scale-100 transition-transform">
                             <AlQwasmehLogo />
                         </Link>
 
-                        {/* أزرار الإجراءات */}
                         <div className="flex items-center gap-1 sm:gap-3">
                             <button
                                 onClick={() => setIsAuthOpen(true)}
                                 className="p-1.5 sm:p-2 text-[#25221F] hover:text-[#9E2639] transition-colors flex items-center gap-1"
-                                title={userName ? userName : "تسجيل الدخول"}
+                                title={userName ? userName : 'تسجيل الدخول'}
                             >
                                 <User size={19} className="sm:w-[21px] sm:h-[21px]" />
                                 {userName && <span className="hidden md:inline text-xs font-semibold text-[#6D1F32] max-w-[90px] truncate">{userName}</span>}
@@ -159,7 +153,6 @@ export const Header = () => {
                         </div>
                     </div>
 
-                    {/* شريط البحث المنسدل تحت الهيدر */}
                     {isSearchOpen && (
                         <div className="pb-4 pt-1 transition-all duration-300">
                             <form onSubmit={handleSearchSubmit} className="relative max-w-2xl mx-auto flex items-center">
@@ -172,7 +165,7 @@ export const Header = () => {
                                     className="w-full bg-white border border-[#EEE5D8] focus:border-[#6D1F32] rounded-full py-2.5 pr-11 pl-20 text-xs sm:text-sm text-right text-stone-800 shadow-sm outline-none transition-all placeholder:text-stone-400"
                                 />
                                 <Search size={18} className="absolute right-4 text-stone-400 pointer-events-none" />
-                                
+
                                 <div className="absolute left-2 flex items-center gap-1">
                                     {searchTerm && (
                                         <button
@@ -196,21 +189,18 @@ export const Header = () => {
                 </div>
             </header>
 
-            {/* درج القائمة للموبايل - تم نقله خارج الهيدر عبر createPortal ليأخذ كامل مساحة الشاشة الحرة */}
             {mobileMenuOpen && typeof document !== 'undefined' && createPortal(
                 <div className="fixed inset-0 z-[99999] lg:hidden flex justify-end">
-                    {/* خلفية التعتيم السوداء مع بلور */}
-                    <div 
+                    <div
                         className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
                         onClick={() => setMobileMenuOpen(false)}
                     />
 
-                    {/* جسم القائمة - ممتد لكامل ارتفاع الشاشة 100vh ومصمت بالكامل */}
                     <div className="relative w-[82%] max-w-xs bg-[#FCFAF6] h-[100dvh] shadow-2xl flex flex-col justify-between p-5 text-right z-10 border-l border-[#EEE5D8] overflow-y-auto">
                         <div>
                             <div className="flex items-center justify-between pb-4 border-b border-stone-200">
                                 <span className="font-bold text-sm text-[#25221F]">القائمة الرئيسية</span>
-                                <button 
+                                <button
                                     onClick={() => setMobileMenuOpen(false)}
                                     className="p-1.5 rounded-full text-stone-600 hover:bg-stone-200 transition-colors"
                                 >
