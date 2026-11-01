@@ -36,8 +36,8 @@ export const ProductsPage = () => {
         return matchesCategory && (nameMatch || descMatch || regionMatch || fabricMatch || embroideryMatch);
     });
 
-    // عمليات حساب الصفحات
-    const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+    // حساب عدد الصفحات (حد أدنى 1 لتفادي الإخفاء)
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage));
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
     const currentItems = filteredProducts.slice(indexOfFirstItem, indexOfLastItem);
@@ -124,6 +124,10 @@ export const ProductsPage = () => {
                                             src={product.image}
                                             alt={product.name}
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = '/background.png';
+                                            }}
                                         />
                                         {product.isNewProduct && (
                                             <span className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-[#9E2639] text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded">
@@ -165,43 +169,41 @@ export const ProductsPage = () => {
                         })}
                     </div>
 
-                    {/* أزرار الترقيم (Pagination Controls) */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-2 pt-10">
-                            <button
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                className="p-2 border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                title="الصفحة السابقة"
-                            >
-                                <ChevronRight size={18} />
-                            </button>
+                    {/* أزرار الترقيم تظهر في كل الأحوال للتنقل والتحكم */}
+                    <div className="flex items-center justify-center gap-2 pt-10">
+                        <button
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                            className="p-2 border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="الصفحة السابقة"
+                        >
+                            <ChevronRight size={18} />
+                        </button>
 
-                            <div className="flex gap-1.5">
-                                {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
-                                    <button
-                                        key={pageNum}
-                                        onClick={() => setCurrentPage(pageNum)}
-                                        className={`w-9 h-9 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum
-                                                ? 'bg-[#6D1F32] text-white shadow-xs'
-                                                : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50'
-                                            }`}
-                                    >
-                                        {pageNum}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <button
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                className="p-2 border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                title="الصفحة التالية"
-                            >
-                                <ChevronLeft size={18} />
-                            </button>
+                        <div className="flex gap-1.5">
+                            {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNum) => (
+                                <button
+                                    key={pageNum}
+                                    onClick={() => setCurrentPage(pageNum)}
+                                    className={`w-9 h-9 rounded-lg text-xs font-bold transition-all ${currentPage === pageNum
+                                            ? 'bg-[#6D1F32] text-white shadow-xs'
+                                            : 'bg-white border border-stone-200 text-stone-700 hover:bg-stone-50'
+                                        }`}
+                                >
+                                    {pageNum}
+                                </button>
+                            ))}
                         </div>
-                    )}
+
+                        <button
+                            disabled={currentPage === totalPages}
+                            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                            className="p-2 border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title="الصفحة التالية"
+                        >
+                            <ChevronLeft size={18} />
+                        </button>
+                    </div>
                 </>
             )}
         </div>

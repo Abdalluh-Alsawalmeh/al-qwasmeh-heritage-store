@@ -200,7 +200,10 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
+  // حذف فوري ومباشر دون نوافذ confirm أو alert
   const deleteProduct = async (id) => {
+    setProducts((prev) => prev.filter((item) => (item._id || item.id) !== id));
+
     try {
       const token = localStorage.getItem('alqwasmeh_token');
       const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
@@ -210,15 +213,13 @@ export const ShopProvider = ({ children }) => {
         }
       });
       const result = await response.json();
-      if (result.success || response.ok) {
-        setProducts((prev) => prev.filter((item) => (item._id || item.id) !== id));
-        return { success: true };
+      if (!response.ok && !result.success) {
+        console.error('فشل الحذف من الخادم:', result.message);
+        fetchProducts();
       }
-      console.error('فشل الحذف:', result.message);
-      return { success: false, message: result.message };
     } catch (error) {
       console.error('حدث خطأ أثناء محاولة الحذف:', error);
-      return { success: false, message: error.message };
+      fetchProducts();
     }
   };
 
