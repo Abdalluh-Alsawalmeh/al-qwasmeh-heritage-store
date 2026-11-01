@@ -11,17 +11,25 @@ import uploadRoutes from './routes/uploadRoutes.js';
 import { errorHandler } from './middlewares/errorMiddleware.js';
 
 dotenv.config();
+
+// الاتصال بقاعدة البيانات
 connectDB();
 
 const app = express();
 
-app.use(cors());
+// إعداد CORS لتقبل الطلبات من Vercel والـ localhost
+app.use(cors({
+  origin: '*',
+  credentials: true
+}));
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // إنشاء مجلد uploads تلقائياً إن لم يكن موجوداً
 const uploadDir = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 // جعل مجلد الصور متاحاً كملفات ثابتة Static
