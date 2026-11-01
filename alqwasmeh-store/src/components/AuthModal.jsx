@@ -30,7 +30,7 @@ export const AuthModal = () => {
         const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
 
         try {
-            const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com${endpoint}`, {
+            const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com/${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),

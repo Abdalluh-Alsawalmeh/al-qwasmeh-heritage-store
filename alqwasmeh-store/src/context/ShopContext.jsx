@@ -2,6 +2,9 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ShopContext = createContext();
 
+// رابط الباك إند على Render (تأكد من مطابقته لاسم خدمتك الحالية على Render)
+const API_BASE_URL = 'https://al-qwasmeh-heritage-store.onrender.com';
+
 export const ShopProvider = ({ children }) => {
   // سلة الشراء مع التخزين المحلي
   const [cart, setCart] = useState(() => {
@@ -43,20 +46,35 @@ export const ShopProvider = ({ children }) => {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
 
+  // دالة تحويل مسارات الصور من localhost إلى Render السحابي
+  const fixImageUrl = (url) => {
+    if (!url) return '/background.png';
+    if (url.startsWith('http://localhost:5000')) {
+      return url.replace('http://localhost:5000', API_BASE_URL);
+    }
+    if (url.startsWith('/uploads')) {
+      return `${API_BASE_URL}${url}`;
+    }
+    return url;
+  };
+
   // جلب الأثواب من الـ Backend
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/products');
+      const response = await fetch(`${API_BASE_URL}/api/products`);
       const result = await response.json();
 
-      // التحقق مما إذا كانت النتيجة كائن يحتوي data أو مصفوفة مباشرة
+      // استخراج البيانات سواء عادت كمصفوفة أو داخل كائن data
       const rawProducts = Array.isArray(result) ? result : (result.data || []);
 
       const formattedProducts = rawProducts.map((item) => ({
         ...item,
         id: item._id || item.id,
+        image: fixImageUrl(item.image),
+        images: Array.isArray(item.images) ? item.images.map(fixImageUrl) : [fixImageUrl(item.image)]
       }));
+
       setProducts(formattedProducts);
     } catch (error) {
       console.error('تعذر جلب البيانات من الخادم:', error.message);
@@ -138,7 +156,7 @@ export const ShopProvider = ({ children }) => {
   const addProduct = async (productData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
-      const response = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/products', {
+      const response = await fetch(`${API_BASE_URL}/api/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -149,7 +167,13 @@ export const ShopProvider = ({ children }) => {
       const result = await response.json();
       if (result.success || response.ok) {
         const newProduct = result.data || result;
-        setProducts((prev) => [{ ...newProduct, id: newProduct._id }, ...prev]);
+        const formatted = {
+          ...newProduct,
+          id: newProduct._id,
+          image: fixImageUrl(newProduct.image),
+          images: Array.isArray(newProduct.images) ? newProduct.images.map(fixImageUrl) : [fixImageUrl(newProduct.image)]
+        };
+        setProducts((prev) => [formatted, ...prev]);
         return { success: true };
       }
       return { success: false, message: result.message };
@@ -162,7 +186,7 @@ export const ShopProvider = ({ children }) => {
   const updateProduct = async (id, updatedData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
-      const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com/api/products/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -173,8 +197,14 @@ export const ShopProvider = ({ children }) => {
       const result = await response.json();
       if (result.success || response.ok) {
         const updated = result.data || result;
+        const formatted = {
+          ...updated,
+          id: updated._id,
+          image: fixImageUrl(updated.image),
+          images: Array.isArray(updated.images) ? updated.images.map(fixImageUrl) : [fixImageUrl(updated.image)]
+        };
         setProducts((prev) =>
-          prev.map((item) => ((item._id || item.id) === id ? { ...updated, id: updated._id } : item))
+          prev.map((item) => ((item._id || item.id) === id ? formatted : item))
         );
         return { success: true };
       }
@@ -189,7 +219,7 @@ export const ShopProvider = ({ children }) => {
     if (!window.confirm('هل أنت متأكد من حذف هذا الثوب نهائياً؟')) return;
     try {
       const token = localStorage.getItem('alqwasmeh_token');
-      const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com/api/products/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
