@@ -86,11 +86,10 @@ const HomePage = ({ onEditProduct, onOpenAddModal }) => {
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id)}
-              className={`px-5 py-2 text-xs md:text-sm rounded-full transition-colors whitespace-nowrap ${
-                selectedCategory === cat.id
+              className={`px-5 py-2 text-xs md:text-sm rounded-full transition-colors whitespace-nowrap ${selectedCategory === cat.id
                   ? 'bg-[#6D1F32] text-white font-semibold'
                   : 'bg-white text-stone-700 hover:bg-[#EEE5D8] border border-[#EEE5D8]'
-              }`}
+                }`}
             >
               {cat.name}
             </button>
@@ -349,6 +348,7 @@ const MainContent = () => {
 
       {adminModal.open && (
         <AdminProductModal
+          isOpen={adminModal.open}
           productToEdit={adminModal.product}
           onClose={() => setAdminModal({ open: false, product: null })}
         />

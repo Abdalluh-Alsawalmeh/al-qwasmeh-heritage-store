@@ -3,7 +3,8 @@ import { X, Upload, Loader2, Trash2 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
 import { API_BASE_URL } from '../config';
 
-export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
+// isOpen افتراضياً true: المكوّن يُعرض شرطياً من الأب (App.jsx) ولا يُمرَّر له isOpen
+export const AdminProductModal = ({ isOpen = true, onClose, productToEdit }) => {
     const { addProduct, updateProduct } = useShop();
 
     const [formData, setFormData] = useState({

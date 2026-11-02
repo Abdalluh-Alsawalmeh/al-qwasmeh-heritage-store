@@ -77,6 +77,41 @@ export const ShopProvider = ({ children }) => {
     fetchProducts();
   }, []);
 
+  // التحقق من الجلسة عند فتح الموقع: يمنع بقاء واجهة الأدمن ظاهرة بتوكن منتهي أو مفقود
+  // (كانت الواجهة تعتمد على المستخدم المحفوظ محلياً فقط بينما الخادم يرفض الطلبات بـ 401)
+  useEffect(() => {
+    const token = localStorage.getItem('alqwasmeh_token');
+    if (!token) {
+      setUser((current) => (current ? null : current));
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        });
+        // تجاهل النتيجة إذا سجّل المستخدم دخولاً جديداً أثناء انتظار الرد
+        if (localStorage.getItem('alqwasmeh_token') !== token) return;
+
+        if (response.status === 401) {
+          setUser(null); // يمسح المستخدم والتوكن عبر الـ effect الخاص بالمستخدم
+          return;
+        }
+        const result = await response.json().catch(() => null);
+        if (response.ok && result?.success && result.user) {
+          setUser(result.user); // تحديث الدور والبيانات من الخادم
+        }
+      } catch {
+        // انقطاع الاتصال: نُبقي الجلسة كما هي ولا نسجّل الخروج
+      }
+    })();
+
+    return () => controller.abort();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('alqwasmeh_cart', JSON.stringify(cart));
   }, [cart]);
@@ -139,10 +174,28 @@ export const ShopProvider = ({ children }) => {
 
   const isInWishlist = (id) => wishlist.some((item) => (item._id || item.id) === id);
 
+  // إنهاء جلسة منتهية/غير صالحة وفتح نافذة تسجيل الدخول
+  const expireSession = () => {
+    setUser(null);
+    localStorage.removeItem('alqwasmeh_token');
+    setIsAuthOpen(true);
+  };
+
+  // رسالة مناسبة حسب رمز الخطأ القادم من الخادم
+  const authFailureMessage = (status, fallback) => {
+    if (status === 401) {
+      expireSession();
+      return 'انتهت صلاحية الجلسة، يرجى تسجيل الدخول من جديد ثم إعادة المحاولة';
+    }
+    if (status === 403) return 'هذا الحساب لا يملك صلاحيات الأدمن';
+    return fallback;
+  };
+
   const addProduct = async (productData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
       if (!token) {
+        expireSession();
         return { success: false, message: 'يرجى تسجيل الدخول كمسؤول أولاً' };
       }
 
@@ -154,8 +207,8 @@ export const ShopProvider = ({ children }) => {
         },
         body: JSON.stringify(productData)
       });
-      const result = await response.json();
-      if (response.ok && result.success) {
+      const result = await response.json().catch(() => null);
+      if (response.ok && result?.success) {
         const newProduct = result.data || result;
         const formatted = {
           ...newProduct,
@@ -166,7 +219,7 @@ export const ShopProvider = ({ children }) => {
         setProducts((prev) => [formatted, ...prev]);
         return { success: true };
       }
-      return { success: false, message: result.message || 'فشلت إضافة الثوب' };
+      return { success: false, message: authFailureMessage(response.status, result?.message || 'فشلت إضافة الثوب') };
     } catch (error) {
       return { success: false, message: error.message };
     }
@@ -175,6 +228,10 @@ export const ShopProvider = ({ children }) => {
   const updateProduct = async (id, updatedData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
+      if (!token) {
+        expireSession();
+        return { success: false, message: 'يرجى تسجيل الدخول كمسؤول أولاً' };
+      }
       const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
         method: 'PUT',
         headers: {
@@ -183,8 +240,8 @@ export const ShopProvider = ({ children }) => {
         },
         body: JSON.stringify(updatedData)
       });
-      const result = await response.json();
-      if (response.ok && result.success) {
+      const result = await response.json().catch(() => null);
+      if (response.ok && result?.success) {
         const updated = result.data || result;
         const formatted = {
           ...updated,
@@ -197,31 +254,38 @@ export const ShopProvider = ({ children }) => {
         );
         return { success: true };
       }
-      return { success: false, message: result.message };
+      return { success: false, message: authFailureMessage(response.status, result?.message || 'فشل تعديل الثوب') };
     } catch (error) {
       return { success: false, message: error.message };
     }
   };
 
   const deleteProduct = async (id) => {
+    const token = localStorage.getItem('alqwasmeh_token');
+    if (!token) {
+      expireSession();
+      alert('يرجى تسجيل الدخول كمسؤول أولاً');
+      return;
+    }
+
     // حذف فوري من الواجهة
     setProducts((prev) => prev.filter((item) => (item._id || item.id) !== id));
 
     try {
-      const token = localStorage.getItem('alqwasmeh_token');
       const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        alert(result.message || 'فشل حذف الثوب من الخادم. تأكد من صلاحيات الأدمن.');
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        alert(authFailureMessage(response.status, result?.message || 'فشل حذف الثوب من الخادم. تأكد من صلاحيات الأدمن.'));
         fetchProducts(); // استرجاع المنتج إذا فشل السيرفر
       }
     } catch (error) {
       console.error('حدث خطأ أثناء محاولة الحذف:', error);
+      alert('تعذر الاتصال بالخادم، لم يتم حذف الثوب. حاول مرة أخرى.');
       fetchProducts();
     }
   };
