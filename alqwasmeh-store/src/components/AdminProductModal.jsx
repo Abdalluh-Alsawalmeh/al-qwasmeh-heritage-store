@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Upload, Loader2, Trash2 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { API_BASE_URL } from '../config';
 
 export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
     const { addProduct, updateProduct } = useShop();
@@ -67,10 +68,16 @@ export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
 
     if (!isOpen) return null;
 
-    // دالة رفع الصورة الأساسية من الجهاز
+    // دالة رفع الصورة الأساسية من الجهاز مع إضافة توكن الأدمن
     const handleMainImageUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        const token = localStorage.getItem('alqwasmeh_token');
+        if (!token) {
+            setError('يرجى تسجيل الدخول بحساب الأدمن أولاً');
+            return;
+        }
 
         const uploadData = new FormData();
         uploadData.append('image', file);
@@ -79,8 +86,11 @@ export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
         setError('');
 
         try {
-            const res = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/upload', {
+            const res = await fetch(`${API_BASE_URL}/api/upload`, {
                 method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                },
                 body: uploadData
             });
             const data = await res.json();
@@ -88,23 +98,28 @@ export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
                 setFormData((prev) => ({
                     ...prev,
                     image: data.imageUrl,
-                    // إذا كانت مصفوفة الصور فارغة نضيفها كصورة أولى
                     images: prev.images.length === 0 ? [data.imageUrl] : prev.images
                 }));
             } else {
                 setError(data.message || 'فشل رفع الصورة');
             }
-        } catch (err) {
+        } catch {
             setError('تعذر الاتصال بخادم رفع الصور');
         } finally {
             setUploadingMain(false);
         }
     };
 
-    // دالة رفع صور المعرض الإضافية
+    // دالة رفع صور المعرض الإضافية مع إضافة توكن الأدمن
     const handleGalleryImageUpload = async (e) => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
+
+        const token = localStorage.getItem('alqwasmeh_token');
+        if (!token) {
+            setError('يرجى تسجيل الدخول بحساب الأدمن أولاً');
+            return;
+        }
 
         setUploadingGallery(true);
         setError('');
@@ -115,8 +130,11 @@ export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
                 const uploadData = new FormData();
                 uploadData.append('image', file);
 
-                const res = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/upload', {
+                const res = await fetch(`${API_BASE_URL}/api/upload`, {
                     method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    },
                     body: uploadData
                 });
                 const data = await res.json();
@@ -129,7 +147,7 @@ export const AdminProductModal = ({ isOpen, onClose, productToEdit }) => {
                 ...prev,
                 images: [...prev.images, ...uploadedUrls]
             }));
-        } catch (err) {
+        } catch {
             setError('حدث خطأ أثناء رفع بعض الصور الإضافية');
         } finally {
             setUploadingGallery(false);
