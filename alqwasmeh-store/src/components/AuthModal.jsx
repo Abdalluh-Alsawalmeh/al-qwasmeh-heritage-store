@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { X, Mail, Lock, User as UserIcon, Loader2 } from 'lucide-react';
 import { useShop } from '../context/ShopContext';
+import { API_BASE_URL } from '../config';
 
 export const AuthModal = () => {
     const { isAuthOpen, setIsAuthOpen, setUser } = useShop();
@@ -30,7 +31,7 @@ export const AuthModal = () => {
         const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
 
         try {
-            const response = await fetch(`https://al-qwasmeh-heritage-store.onrender.com/${endpoint}`, {
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData),
@@ -59,7 +60,7 @@ export const AuthModal = () => {
 
         try {
             // إرسال التوكن للباك إند للتسجيل والتحقق في MongoDB
-            const response = await fetch('https://al-qwasmeh-heritage-store.onrender.com/api/auth/google', {
+            const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ credential: credentialResponse.credential }),
@@ -150,6 +151,7 @@ export const AuthModal = () => {
                                 type="password"
                                 name="password"
                                 required
+                                minLength={6}
                                 value={formData.password}
                                 onChange={handleInputChange}
                                 placeholder="••••••••"
@@ -178,7 +180,6 @@ export const AuthModal = () => {
                     </div>
                 </div>
 
-                {/* زر Google Sign-In المدمج من الحزمة */}
                 <div className="flex justify-center">
                     <GoogleLogin
                         onSuccess={handleGoogleSuccess}
