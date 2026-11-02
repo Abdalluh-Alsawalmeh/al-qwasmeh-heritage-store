@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config';
 
 const ShopContext = createContext();
-
-const API_BASE_URL = 'https://al-qwasmeh-heritage-store.onrender.com';
 
 export const ShopProvider = ({ children }) => {
   const [cart, setCart] = useState(() => {
@@ -143,6 +142,10 @@ export const ShopProvider = ({ children }) => {
   const addProduct = async (productData) => {
     try {
       const token = localStorage.getItem('alqwasmeh_token');
+      if (!token) {
+        return { success: false, message: 'يرجى تسجيل الدخول كمسؤول أولاً' };
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/products`, {
         method: 'POST',
         headers: {
@@ -152,7 +155,7 @@ export const ShopProvider = ({ children }) => {
         body: JSON.stringify(productData)
       });
       const result = await response.json();
-      if (result.success || response.ok) {
+      if (response.ok && result.success) {
         const newProduct = result.data || result;
         const formatted = {
           ...newProduct,
@@ -163,7 +166,7 @@ export const ShopProvider = ({ children }) => {
         setProducts((prev) => [formatted, ...prev]);
         return { success: true };
       }
-      return { success: false, message: result.message };
+      return { success: false, message: result.message || 'فشلت إضافة الثوب' };
     } catch (error) {
       return { success: false, message: error.message };
     }
@@ -181,7 +184,7 @@ export const ShopProvider = ({ children }) => {
         body: JSON.stringify(updatedData)
       });
       const result = await response.json();
-      if (result.success || response.ok) {
+      if (response.ok && result.success) {
         const updated = result.data || result;
         const formatted = {
           ...updated,
@@ -200,8 +203,8 @@ export const ShopProvider = ({ children }) => {
     }
   };
 
-  // حذف فوري ومباشر دون نوافذ confirm أو alert
   const deleteProduct = async (id) => {
+    // حذف فوري من الواجهة
     setProducts((prev) => prev.filter((item) => (item._id || item.id) !== id));
 
     try {
@@ -213,9 +216,9 @@ export const ShopProvider = ({ children }) => {
         }
       });
       const result = await response.json();
-      if (!response.ok && !result.success) {
-        console.error('فشل الحذف من الخادم:', result.message);
-        fetchProducts();
+      if (!response.ok || !result.success) {
+        alert(result.message || 'فشل حذف الثوب من الخادم. تأكد من صلاحيات الأدمن.');
+        fetchProducts(); // استرجاع المنتج إذا فشل السيرفر
       }
     } catch (error) {
       console.error('حدث خطأ أثناء محاولة الحذف:', error);
@@ -225,6 +228,8 @@ export const ShopProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem('alqwasmeh_user');
+    localStorage.removeItem('alqwasmeh_token');
   };
 
   return (
