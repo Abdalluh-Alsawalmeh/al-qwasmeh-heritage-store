@@ -53,13 +53,11 @@ export const AuthModal = () => {
         }
     };
 
-    // معالجة رد Google Sign-In
     const handleGoogleSuccess = async (credentialResponse) => {
         setLoading(true);
         setError('');
 
         try {
-            // إرسال التوكن للباك إند للتسجيل والتحقق في MongoDB
             const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
